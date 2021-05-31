@@ -71,3 +71,36 @@ b->只有五个字节, 1 和 2 的 返回相同，而且难以预知行为
 2. fread(buf, 10, 1, fp)
 
 建议 fread 和 fwrite 都采用单字节对象操作
+
+snprintf, gets, fgets 没有解决内存安全的问题，没有检查写越界
+使用 scanf, fscanf, sscanf 要慎用 %s，因为你无法知道 scanf 输入字符串的长度
+
+fseek, ftell 使用了 long 类型，而 long 类型没有标准定义，这就导致在使用 fseek 和 ftell 时不能对大文件作操作
+fseeko 和 ftello 使用了 off_t 类型，可以在编译时进行宏替换
+
+fseek: whence = SEEK_SET, SEEK_CUR, SEEK_END，
+例如回到文件首 fseek(f, 0, SEEK_SET)
+
+ftell 文件位置指针的当前位置
+
+rewind 相当于 fseek(f, 0, SEEK_SET)，把文件位指针移到起始位置
+
+空洞文件: 文件充斥着 '\0'，下载工具在下载文件时会创建一个空洞文件，目的是防止下载过程中报磁盘空间不足
+
+fflush
+
+```c
+int main() {
+    printf("before while");
+
+    while(1);
+}
+```
+
+以上代码执行时候终端不会打印，因为终端是行缓冲模式，打印结果还在缓冲区, fflush(null) 会刷新所有输出流
+
+缓冲大部分情况下是好事，合并系统调用
+
+行缓冲: 终端设备，遇到换行符或者缓冲区满了则刷新
+全缓冲: 满了时候或者 
+无缓冲: stderr，没有缓冲区，默认情况下不建议修改缓冲模式，如果需要，可以用 setvbuf 修改缓冲模式
