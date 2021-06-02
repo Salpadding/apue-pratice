@@ -104,3 +104,13 @@ int main() {
 行缓冲: 终端设备，遇到换行符或者缓冲区满了则刷新
 全缓冲: 满了时候或者 
 无缓冲: stderr，没有缓冲区，默认情况下不建议修改缓冲模式，如果需要，可以用 setvbuf 修改缓冲模式
+
+提出问题: 如何安全地读取一行?
+
+- getline: 使用前需要宏定义 #define _GNU_SOURCE 
+
+```c
+ssize_t getline(char ** lineptr, size_t *n, FILE * stream);
+```
+
+getline 函数有两个返回值，其中一个类型是 char * , 需要传一个 char ** 进去，另一个类型是 size_t, 需要传指针
