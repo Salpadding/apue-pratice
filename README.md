@@ -190,3 +190,29 @@ fcntl, ioctl 管家级的函数
 /dev/fd/ 虚目录
 
 
+- read 函数
+
+```c
+ssize_t read(int fd, void * buf, size_t count);
+```
+
+成功返回读取的字节数，遇到 EOF 返回 0, 失败返回 -1
+
+- write 函数
+
+```c
+ssize_t write(int fd, const void * buf, size_t count);
+```
+
+- lseek 函数
+
+和 fseek 和 ftell 的综合使用，先移动文件位指针到指定位置
+
+```c
+off_t lseek(int fd, off_t offset, int whence);
+```
+
+ftello 相当于 lseek(fd, 0, SEEK_CUR)
+
+
+
