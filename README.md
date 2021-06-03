@@ -1,6 +1,8 @@
 # apue-pratice
 apue pratices
 
+## 标准 IO
+
 标准IO vs 系统调用 Io
 
 1. 可移植性好，适用于不同的 kernal
@@ -128,5 +130,63 @@ tmpfile，返回一个匿名文件，当 fclose 这个临时文件后，这个�
 ```c
 FILE * tmpfile(void);
 ```
+
+## 系统调用 IO
+
+文件描述符 file descriptor
+
+FILE * 结构体猜测
+
+1. cache 和 buffer 区
+2. 文件描述符
+3. 文件位指针
+
+使用 open 打开文件后，会创建一个结构体，这个结构体包含了这个文件的 inode，文件位指针，这个结构体会存在于一个数组中，文件描述符就是这个结构体的数组下标
+文件描述符为什么是一个整形数? 因为它是一个数组下标
+
+文件描述符优先使用当前可用范围内最小的，文件描述符会引用一个隐藏的结构体，同一个隐藏的结构体可能会被多个描述符引用，当没有描述符引用该结构体时，结构体会被释放
+
+文件 IO 操作:
+
+open, close, read, write, lseek
+
+```c
+int open(const char * pathname, int flags);
+int open(const char * pathname, int flags, int mode);
+```
+
+其中 flags 是位图，常用的选项
+
+- O_CREAT 无则创建
+- O_TRUNC 有则清空
+- O_EXCL 必须打开新文件，必须和 O_CREATE 连用
+- O_APPEND 追加写
+- O_ASYNC 信号驱动 IO
+- O_DIRECT 最小化 cache 作用
+- O_LARGEFILE 大文件打开 或者设置 off_t
+- O_NOATIME 不修改文件最后读时间
+- O_NOFOLLOW 不解引用符号连接
+- O_NONBLOCK 非阻塞 IO
+- O_SYNC 同步，跟信号驱动没关系
+
+"r" = O_RDONLY, "r+" = O_RDWR, 
+"w" = O_WRONLY | O_TRUNC | O_CREAT
+"w+" = O_RDWR | | O_TRUNC | O_CREAT 
+"a" = O_WRONLY |  O_CREAT | O_APPEND
+"a+" = O_RDWR | O_CREAT | O_APPEND
+
+如果 flags 中包含 O_CREAT，要添加 mode 选项，指定文件的权限位，权限位会被 umask 掩盖掉权限
+
+IO 的效率问题
+
+原子操作
+
+重定向(dup, dup2)
+
+同步 sync, fsync, fdatasync
+
+fcntl, ioctl 管家级的函数
+
+/dev/fd/ 虚目录
 
 
