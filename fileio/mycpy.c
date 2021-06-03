@@ -6,13 +6,6 @@
 #include <unistd.h>
 #define BUF_SIZE 2048
 
-void write_buf(const char * buf, ssize_t sz, int fd) {
-    ssize_t remain = sz;
-    while(remain != 0) {
-        remain -= write(fd, buf + sz - remain, remain);
-    }
-}
-
 int main(int argc, char ** argv) {
     if(argc < 3) {
         fprintf(stderr, "copy file\nUsage: %s src dst\n", argv[0]);
@@ -49,7 +42,17 @@ int main(int argc, char ** argv) {
         if(sz == 0)
             break;
 
-        write_buf(buf, sz, dst);
+        ssize_t remain = sz;
+        while(remain != 0) {
+            ssize_t written = write(dst, buf + sz - remain, remain);
+            if(written < 0) {
+                perror("write");
+                close(src);
+                close(dst);                
+                exit(0);
+            }
+            remain -= written;
+        }
     }
 
     close(src);
