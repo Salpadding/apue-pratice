@@ -114,3 +114,19 @@ ssize_t getline(char ** lineptr, size_t *n, FILE * stream);
 ```
 
 getline 函数有两个返回值，其中一个类型是 char * , 需要传一个 char ** 进去，另一个类型是 size_t, 需要传指针
+
+临时文件: 使用完就删除, 创建时 不能冲突
+
+tmpnam 这个函数是线程不安全的，而且不同的进程可能会获取到相同的 tmpnam
+
+```c
+char * tmpnam(char * s)
+```
+
+tmpfile，返回一个匿名文件，当 fclose 这个临时文件后，这个文件会被删除
+
+```c
+FILE * tmpfile(void);
+```
+
+
