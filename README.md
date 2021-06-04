@@ -218,3 +218,12 @@ ftello 相当于 lseek(fd, 0, SEEK_CUR)
 
 
 strace 可以调式系统调用的
+
+原子操作: 原子是指不可分割的最小单位，原子操作的作用是解决竞争和冲突，比如 tmpnam 和 tmpfile，其中 tmpnam 就是不原子的
+
+dup 和 dup2
+
+dup 的问题在于没有检查传入的文件描述符就是需要重定向的文件描述符，需要先关闭，不具备原子性，不支持多线程
+dup2 会把 newfd 作为 oldfd 的副本，如果必要的话，会关闭 oldfd
+
+dup2(newfd, oldfd)

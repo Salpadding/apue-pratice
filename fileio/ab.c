@@ -1,3 +1,5 @@
+// show the existence of stdio buffer 
+
 #include <stdio.h>
 #include <unistd.h>
 
