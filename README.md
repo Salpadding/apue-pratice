@@ -214,5 +214,7 @@ off_t lseek(int fd, off_t offset, int whence);
 
 ftello 相当于 lseek(fd, 0, SEEK_CUR)
 
+标准 IO 和 系统调用 IO 不可以混用，因为标准 IO 有缓冲区，当从标准 IO 读取一个字节时，FILE 结构体中的文件描述符可能已经读了 4096 个字节，写入时也是同理
 
 
+strace 可以调式系统调用的
