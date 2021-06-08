@@ -227,3 +227,6 @@ dup 的问题在于没有检查传入的文件描述符就是需要重定向的�
 dup2 会把 newfd 作为 oldfd 的副本，如果必要的话，会关闭 oldfd
 
 dup2(newfd, oldfd)
+
+
+/dev/fd 显示当前进程打开的文件描述符
