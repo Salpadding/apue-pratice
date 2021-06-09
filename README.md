@@ -235,3 +235,18 @@ dup2(newfd, oldfd)
 - 目录和文件
 
 - 系统数据文件和信息
+
+在文件属性中, st_size 和  st_blocks * 512 没有必然联系，对于普通文件，
+st_blocks * 512 会大于等于 st_size，对于空洞文件 st_size 会远大于 st_blocks * 512
+
+st_blocks * 512 是文件实际占用的磁盘大小, st_size 仅仅是一个标记，用于记录文件的大小
+
+st_mode(16bit) 记录了
+
+1. 文件类型(3bit) dcblsp-
+
+d = directory 目录 , c = character 字符设备, b = block 块设备, l = symblic link 符号连接, s = socket, p = pipe 管道, - 常规文件
+
+2. u+s g+s 粘住位 (3bit)
+
+3. 文件的权限位 (9bit)
