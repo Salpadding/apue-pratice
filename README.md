@@ -245,7 +245,7 @@ st_mode(16bit) 记录了
 
 1. 文件类型(3bit) dcblsp-
 
-d = directory 目录 , c = character 字符设备, b = block 块设备, l = symblic link 符号连接, s = socket, p = pipe 管道, - 常规文件
+d = directory 目录 , c = character 字符设备, b = block 块设备, l = symbolic link 符号连接, s = socket, p = pipe 管道, - 常规文件
 
 2. u+s g+s 粘住位 (3bit)
 
@@ -258,3 +258,23 @@ chmod, fchmod
 4. 粘住位
 
 可执行的文件如果设置了粘住位，那么下次装载的时候会比较块，现在常用在目录上，如果对一个目录设置了粘住位，则只有对该目录具有写许可权的用户并且满足下列条件之一，才能删除或更名该目录下的文件：1.拥有此文件 2.拥有此目录 3.是超级用户。
+
+- hardlink
+
+相当于创建一个相同 inode 的目录项, 同时增加 inode 的硬链接数
+
+- symbolic link
+
+是一个新的文件，可以有不同的 inode 等文件属性，不占磁盘空间，所有信息都存在 inode 中
+
+
+和硬链接有关的函数:
+
+- link 不能跨分区建立硬连接，不能为目录创建硬连接
+- unlink 可以用于创建匿名文件，不能用于删除空目录
+
+和工作路径有关的系统调用
+
+- chdir
+- fchdir
+- getcwd
