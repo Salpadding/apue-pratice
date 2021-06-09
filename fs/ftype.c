@@ -18,7 +18,7 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
-    unsigned int mask = (unsigned int) (st.st_mode & S_IFMT);
+    unsigned int mask =  ((unsigned int) st.st_mode) & S_IFMT;
     mask = mask >> 12;
 
     if(mask >= strlen(types)) {
