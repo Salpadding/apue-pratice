@@ -304,4 +304,7 @@ getpwuid, getpwnam 分别根据 uid 和 username 获取用户信息，返回的�
 groupname:*:groupdid:
 
 3. /etc/shadow
+
+通过 getspnam, getpass, get_salt, crypt 可以校验用户输入的密码
+
 4. 时间戳
