@@ -4,9 +4,77 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <string.h>
+#include <glob.h>
 
 static const char * units = "bkmg";
 static const double k = 1024.0;
+
+int str_ends_with(const char * src, const char * suffix) {
+    size_t len0 = strlen(src);
+    size_t len1 = strlen(suffix);
+
+    if(len0 < len1)
+        return 0;
+    
+    const char * end0 = src + len0 - 1;
+    const char * end1 = suffix + len1 - 1;
+
+    for(size_t i = 0; i < len1; i++) {
+       if (*(end0 - i) != *(end1 - i)) {
+           return 0;
+       }
+    }
+
+    return 1;
+}
+
+uint64_t du_by_glob(const char * path) {
+    uint64_t r = 0;
+    struct stat st;
+    if(lstat(path, &st) < 0) {
+        perror("lstat");
+        exit(1);
+    }
+
+    r += st.st_blocks * 512;
+    if(!S_ISDIR(st.st_mode)) {
+        return r;
+    }
+    
+    size_t len = strlen(path);
+
+    // pattern = path + "/*" + '/0'
+    char * pattern = malloc(len + 3);
+    strcpy(pattern, path);
+    strcpy(pattern + len, "/*");
+
+    glob_t g;
+
+    // when meet empty directory
+    glob(pattern, 0, NULL, &g);
+    free(pattern);
+
+    // pattern = path + "/.*" + '/0'
+    pattern = malloc(len + 4);
+    strcpy(pattern, path);
+    strcpy(pattern + len, "/.*");
+
+    // when meet empty directory
+    glob(pattern, GLOB_APPEND, NULL, &g);
+
+    free(pattern);
+
+    for(int i = 0; i < g.gl_pathc; i++) {
+        // skip directory ends with /. or /..
+        if(
+            str_ends_with(g.gl_pathv[i], "/.") ||
+            str_ends_with(g.gl_pathv[i], "/..")            
+        ) continue;
+        r += du_by_glob(g.gl_pathv[i]);
+    }
+    globfree(&g);
+    return r;
+}
 
 uint64_t du(const char * path) {
     uint64_t r = 0;
@@ -56,7 +124,19 @@ int main(int argc, char ** argv) {
         exit(1);
     }
 
-    double d = (double) du(argv[1]);
+    #ifdef DU_BY_GLOB
+        printf("du by glob\n");
+    #else
+        printf("du\n");
+    #endif    
+
+    double d = (double) 
+    #ifdef DU_BY_GLOB
+        du_by_glob(argv[1]);
+    #else
+        du(argv[1]);    
+    #endif
+
     int unit = 0;
     while(d > 1000) {
         d = d / 1024.0;
