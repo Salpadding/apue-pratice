@@ -38,6 +38,7 @@ int main(int argc, char ** argv) {
 
     struct stat st;
 
+    // lstat 不会对符号链接进行解引用
     if(stat(argv[1], &st) < 0) {
         perror("stat()\n");
         exit(0);

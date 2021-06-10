@@ -285,3 +285,8 @@ glob 的 pattern
 
 - /etc 目录下所有的文件，不包含隐藏文件 /etc/*
 - /etc 目录下所有的隐藏文件, /etc/.*
+
+6. 目录流操作
+
+- opendir 打开目录流
+- readdir_r 迭代目录流
