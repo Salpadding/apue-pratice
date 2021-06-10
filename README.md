@@ -308,3 +308,31 @@ groupname:*:groupdid:
 通过 getspnam, getpass, get_salt, crypt 可以校验用户输入的密码
 
 4. 时间戳
+
+- time 函数，从内核中取时间戳
+
+```c
+#include <time.h>
+time_t time(time_t*);
+```
+
+- localtime 和 gmtime 函数, time_t -> struct tm*, 整数转结构体
+
+```c
+#include <time.h>
+struct tm *localtime(const time_t *timep);
+struct tm *gmtime(const time_t *timep);
+```
+
+- mktime struct tm* -> time_t, 结构体转整数
+
+```c
+time_t mktime(struct tm *tm);
+```
+
+- strftime struct tm* -> char *, 
+
+```c
+#include <time.h>
+size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
+```                       
