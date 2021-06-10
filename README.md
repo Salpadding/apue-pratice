@@ -278,3 +278,10 @@ chmod, fchmod
 - chdir
 - fchdir
 - getcwd
+
+5. glob 函数，通过模式寻找路径，需要用 globfree 释放
+
+glob 的 pattern 
+
+- /etc 目录下所有的文件，不包含隐藏文件 /etc/*
+- /etc 目录下所有的隐藏文件, /etc/.*
