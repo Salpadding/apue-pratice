@@ -10,7 +10,7 @@ const path = require('path')
 for(let sub of fs.readdirSync(__dirname)) {
     if(!fs.statSync(sub).isDirectory())
         continue
-    if(sub == '.git')
+    if(sub == '.git' || sub == 'node_modules')
         continue
 
     const srcs = fs.readdirSync(sub)

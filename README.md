@@ -297,6 +297,8 @@ glob 的 pattern
 
 username:*:uid:gid:comment:home:bash
 
+getpwuid, getpwnam 分别根据 uid 和 username 获取用户信息，返回的指针指向的内存位于静态区
+
 2. /etc/group
 
 groupname:*:groupdid:
