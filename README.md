@@ -290,3 +290,16 @@ glob 的 pattern
 
 - opendir 打开目录流
 - readdir_r 迭代目录流
+
+7. 系统数据文件和信息
+
+1. /etc/passwd
+
+username:*:uid:gid:comment:home:bash
+
+2. /etc/group
+
+groupname:*:groupdid:
+
+3. /etc/shadow
+4. 时间戳
