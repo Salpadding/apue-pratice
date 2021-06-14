@@ -335,4 +335,44 @@ time_t mktime(struct tm *tm);
 ```c
 #include <time.h>
 size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
-```                       
+```            
+
+## 进程
+
+- 进程的终止方式
+
+正常终止:
+
+1. main 函数 return 0
+2. exit() _exit() _Exit()
+3. 最后一个线程从其启动例程返回
+4. 最后一个线程调用了 pthread_exit
+
+main 函数 return 0 或者调用 exit()，会调用 atexit 注册的钩子函数，钩子函数会按照注册顺序的逆序执行，可以利用钩子函数关闭打开的资源
+
+```c
+
+```
+
+异常终止:
+
+1. 调用 abort 函数，发送 SIG_ABORT 信号给当前进程，同时生成 core dump
+2. 接到一个信号并终止
+3. 最后一个线程对其取消请求作出响应
+
+
+- 命令行参数解析
+
+
+
+```c
+int getopt(int argc, char * const argv[], const char *optstring);
+```
+
+长格式命令行传参
+
+```c
+int getopt_long(int argc, char * const *argv, const char *optstring, const struct option *longopts, int *longindex);
+```
+
+
