@@ -363,16 +363,19 @@ main 函数 return 0 或者调用 exit()，会调用 atexit 注册的钩子函�
 
 - 命令行参数解析
 
-
+1. getopt 函数
 
 ```c
 int getopt(int argc, char * const argv[], const char *optstring);
 ```
 
-长格式命令行传参
+此函数用于短格式命令行参数解析, 如果需要一个字符串类型的参数, 可以使用 "a:"
+
 
 ```c
 int getopt_long(int argc, char * const *argv, const char *optstring, const struct option *longopts, int *longindex);
 ```
+
+getopt_long 同时支持长格式和短格式的命令行传参
 
 
