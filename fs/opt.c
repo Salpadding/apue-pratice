@@ -12,7 +12,7 @@
 int main(int argc, char ** argv) {
     int ch;
 
-    while((ch = getopt(argc, argv, "a:b")) >= 0) {
+    while((ch = getopt(argc, argv, "-a:b")) >= 0) {
         switch (ch)
         {
         case 'a':

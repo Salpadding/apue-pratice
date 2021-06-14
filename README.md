@@ -378,4 +378,20 @@ int getopt_long(int argc, char * const *argv, const char *optstring, const struc
 
 getopt_long 同时支持长格式和短格式的命令行传参
 
+- 环境变量
+
+获取环境变量需要声明 ```extern char ** argv```
+
+对环境变量进行读写可以调用函数
+
+
+```c
+char * getenv(const char *name);
+
+int setenv(const char *name, const char *value, int overwrite);
+
+int putenv(char *string);
+
+int unsetenv(const char *name);
+```
 
