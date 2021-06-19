@@ -6,7 +6,8 @@ int main() {
     pid_t pid;
 
     printf("[%d]: Begin!\n", getpid());
-
+    // fork 之前应该刷新缓冲区, 防止缓冲区被复制
+    fflush(NULL);
     pid = fork();
 
     if(pid < 0) {
@@ -21,7 +22,5 @@ int main() {
     }
 
     printf("[%d]: End\n", getpid());
-
-    sleep(1000);
     return 0;
 }

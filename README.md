@@ -350,10 +350,6 @@ size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
 
 main 函数 return 0 或者调用 exit()，会调用 atexit 注册的钩子函数，钩子函数会按照注册顺序的逆序执行，可以利用钩子函数关闭打开的资源
 
-```c
-
-```
-
 异常终止:
 
 1. 调用 abort 函数，发送 SIG_ABORT 信号给当前进程，同时生成 core dump
@@ -430,14 +426,53 @@ resource 是宏，例如 RLIMIT_CORE
 
 fork 执行一次，返回两次，复制当前进程，包括当前进程的执行位置
 fork 父子进程的区别: fork 的返回值不同， pid 和 ppid 不同，未决信号和文件锁不继承，资源利用量归 0
+fork 之前应该刷新缓冲区, 防止缓冲区被复制到子进程
 
 fork 
 1. 成功, 父进程返回子进程的 pid, 子进程返回 0
 2. 失败, 父进程返回 -1
 
+进程可以看作一种资源，谁创建就需要谁释放，父进程需要 reap 子进程，如果父进程没有及时 reap 子进程，而且父进程没有退出，子进程会变成 zombie 进程，父进程退出后，子进程会变成孤儿进程，被init进程接管
+
+现在操作系统的 fork 都使用了写时复制技术，父子进程谁修改内存，谁就拷贝, 所以 vfork 很少使用了, vfork 后的子进程只能调用 _exit 或者 exec 函数族中的函数，调用其他函数都属于未定义行为
+
 init 进程是所有进程的祖先进程, pid 是 1
 
 进程的消亡及释放资源
+
+reap 的本质是等待进程状态发生变化
+
+- wait() 
+
+```c
+pid_t wait(int *wstatus);
+```
+
+
+把 reap 的返回值放到 wstatus 指向的位置，如果 status 是空指针,会忽略 wstatus
+
+WIFEXITED , 检查进程正常终止
+WEXITSTATUS, 进程退出的状态码，前提是子进程正常终止
+WIFSIGNALED, 子进程是被信号终止的
+WTERMSIG, 返回子进程被打断的信号
+WCOREDUMP, 是否产生了 core dump 文件
+
+
+- waitpid()
+
+根据 pid reap 子进程，指定 WNOHANG 选项可以非阻塞式的 reap
+
+```c
+pid_t waitpid(pid_t pid, int *wstatus, int options);
+```
+
+如果 pid < 0，会 reap any child process whose process group id is equal to the absolute value of pid
+如果 pid = -1, 会 reap 所有的子进程
+如果 pid = 0, 会 reap any child process whose process group id is equal to that fo the calling process
+如果 pid > 0, 会 reap child process whose process id is equal to the value of pid
+
+- waitid
+
 
 exec 函数族
 
@@ -453,3 +488,5 @@ pid 顺序产生和文件描述符不一样
 
 getpid
 getppid
+
+exec 之前也要调用 fflush 刷新缓冲流
