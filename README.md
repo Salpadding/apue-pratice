@@ -395,3 +395,61 @@ int putenv(char *string);
 int unsetenv(const char *name);
 ```
 
+
+- 函数间跳转
+
+```c
+int setjmp(jmp_buf env);
+void longjmp(jmp_buf env, int val);
+```
+
+setjmp 函数的特点是调用一次返回两次, jmp_buf 类型的值需要定义为全局变量，因为要在多处使用, setjmp 和 longjmp 的使用可以参考 ps/setjmp.c
+
+注意 jmp_buf 必须声明为静态变量
+
+- 资源获取
+
+```c
+#include <sys/resource.h>
+
+// 获取资源限制
+int getrlimit(int resource, struct rlimit *rlp);
+
+// 设置资源限制，需要 root 权限
+int setrlimit(int resource, const struct rlimit *rlp);
+```
+
+rlp 包含了 soft limit 和 hard limit, 所有用户都可以修改 soft limit, 但是 soft limit 不能大于 hard limit, 只有 super user 可以修改 hard limit
+resource 是宏，例如 RLIMIT_CORE
+
+进程的产生、消亡，父子进程的关系
+
+进程标识符 pid
+
+进程的产生 fork, vfork
+
+fork 执行一次，返回两次，复制当前进程，包括当前进程的执行位置
+fork 父子进程的区别: fork 的返回值不同， pid 和 ppid 不同，未决信号和文件锁不继承，资源利用量归 0
+
+fork 
+1. 成功, 父进程返回子进程的 pid, 子进程返回 0
+2. 失败, 父进程返回 -1
+
+init 进程是所有进程的祖先进程, pid 是 1
+
+进程的消亡及释放资源
+
+exec 函数族
+
+用户权限及组权限
+
+守护进程
+
+ps axm
+ps axf
+ps ax -L
+
+pid 顺序产生和文件描述符不一样
+
+getpid
+getppid
