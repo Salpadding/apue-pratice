@@ -15,7 +15,7 @@ for(let sub of fs.readdirSync(__dirname)) {
 
     const srcs = fs.readdirSync(sub)
     for(let f of srcs) {
-        if(!f.endsWith('.c')) {
+        if(!f.endsWith('.c') && !f.endsWith('.h')) {
             fs.unlinkSync(path.join(__dirname, sub, f))
         }
     }
