@@ -47,6 +47,8 @@ static void mytbf_unload() {
     if(func != NULL) 
         signal(SIGALRM, func);
     func = NULL;
+    for(int i = 0; i < MAX_TBF; i++)
+        free(jobs[i]);
 }
 
 #define MIN(x, y) (x < y ? x : y)
