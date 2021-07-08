@@ -5,14 +5,6 @@
 
 #define MAX_TBF 1024
 
-struct mytbf_st* jobs[MAX_TBF];
-
-static int inited = 0;
-
-static void (*func)(int);
-
-#define MIN(x, y) (x < y ? x : y)
-
 struct mytbf_st {
     int cps;
     int burst;
@@ -20,13 +12,13 @@ struct mytbf_st {
     int pos;
 };
 
-static int get_pos() {
-    for(int i = 0; i < MAX_TBF; i++) {
-        if(jobs[i] == NULL)
-            return i;
-    }
-    return -1;
-}
+struct mytbf_st* jobs[MAX_TBF];
+
+static volatile int inited = 0;
+
+typedef void (*sig_handler)(int);
+
+static volatile sig_handler func;
 
 // alarm signal handler
 static void handle(int sig) {
@@ -38,13 +30,39 @@ static void handle(int sig) {
     }
 }
 
-mytbf_t *mytbf_init(int cps,int burst) {
-    if(!inited) {
-        func = signal(SIGALRM, handle);
-        alarm(1);
-        inited = 1;
-    }
+static void mytbf_load() {
+    if(inited)
+        return;
+    inited = 1;        
+    func = signal(SIGALRM, handle);
+    alarm(1);
+}
 
+static void mytbf_unload() {
+    if(!inited)
+        return;
+    inited = 0;    
+    // cancel previous signal
+    alarm(0);   
+    if(func != NULL) 
+        signal(SIGALRM, func);
+    func = NULL;
+}
+
+#define MIN(x, y) (x < y ? x : y)
+
+
+
+static int get_pos() {
+    for(int i = 0; i < MAX_TBF; i++) {
+        if(jobs[i] == NULL)
+            return i;
+    }
+    return -1;
+}
+
+mytbf_t *mytbf_init(int cps,int burst) {
+    mytbf_load();
     struct mytbf_st* m = malloc(sizeof(struct mytbf_st));
 
     if(m == NULL)
