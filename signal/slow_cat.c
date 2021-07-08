@@ -52,9 +52,21 @@ int main(int argc, char** argv) {
             perror("read()");
             exit(1);
         }
+        mytbf_returntoken(p, fetched - sz);
 
-        ssize_t writed = write(1, buf, sz);
-        mytbf_returntoken(p, sz - writed);
+        ssize_t cur = 0;
+        while(cur != sz) {
+            ssize_t writed = write(1, buf + cur, sz);
+
+            if(writed < 0) {
+                if(errno == EINTR)
+                    continue;
+                perror("write()");
+                exit(1);
+            }
+
+            cur += writed;
+        }
     }
     
     mytbf_destroy(p);
