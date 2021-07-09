@@ -598,3 +598,5 @@ int main() {
 ```
 
 在这里 on_exit 有重入的风险，例如进程收到 SIGINT 信号后，假如在调用 fclose 后，在 src = NULL 之前，被 SIGQUIT 打断，这时候可能会造成 src 被 close 两次
+
+sigaction 可以指定在信号处理函数执行时需要block的信号，以防止重入现象的发生
