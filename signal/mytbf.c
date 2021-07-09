@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <signal.h>
+#include <sys/time.h>
 
 #define MAX_TBF 1024
 
@@ -22,7 +23,6 @@ static volatile sig_handler func;
 
 // alarm signal handler
 static void handle(int sig) {
-    alarm(1);
     for(int i = 0; i < MAX_TBF; i++) {
         struct mytbf_st* p = jobs[i];
         if(p != NULL)
@@ -35,7 +35,13 @@ static void mytbf_load() {
         return;
     inited = 1;        
     func = signal(SIGALRM, handle);
-    alarm(1);
+    struct itimerval value;
+    struct timeval v;
+    v.tv_sec = 1;
+    v.tv_usec = 0;
+    value.it_interval = v;
+    value.it_value = v;
+    setitimer(ITIMER_REAL, &value, NULL);
 }
 
 static void mytbf_unload() {
@@ -43,7 +49,6 @@ static void mytbf_unload() {
         return;
     inited = 0;    
     // cancel previous signal
-    alarm(0);   
     if(func != NULL) 
         signal(SIGALRM, func);
     func = NULL;
