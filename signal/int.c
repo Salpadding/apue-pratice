@@ -3,13 +3,22 @@
 #include <signal.h>
 #include <unistd.h>
 
+typedef void (*handler_t) (int);
+
 static void handler(int sig) {
     write(1, "!", 1);
 }
 
 int main() {
-    signal(SIGINT, handler);
+    handler_t p = signal(SIGINT, handler);
+
+
     sigset_t set;
+    sigset_t old;
+    sigset_t empty;
+
+    sigemptyset(&empty);
+    sigprocmask(SIG_BLOCK, &empty, &old);
     sigemptyset(&set);
     sigaddset(&set, SIGINT);
     
@@ -26,5 +35,7 @@ int main() {
         write(1, "\n", 1);
     }
 
+    sigprocmask(SIG_SETMASK, &old, NULL);
+    signal(SIGINT, p);
     return 0;
 }
