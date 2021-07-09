@@ -569,3 +569,32 @@ int pause(void);
 
 不能从信号处理函数中随意的往外跳，例如 setjmp, longjmp，因为信号响应函数调用结束后，内核要把信号屏蔽字解除阻塞，如果在信号处理函数中 longjmp, 可能以后再也收不到这个信号
 如果要跳的话，需要调用 sigsetjmp 和 siglongjmp
+
+- signal 面对的问题
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <signal.h>
+
+static volatile FILE* src = NULL;
+static volatile FILE* dst = NULL:
+
+void on_exit(int sig) {
+    if(src != NULL) {
+        fclose(src);
+        src = NULL;
+    }
+    if(dst != NULL) {
+        fclose(dst);
+        dst = NULL;
+    }
+}
+
+int main() {
+    signal(SIGINT, on_exit);
+    signal(SIGQUIT, on_exit);
+}
+```
+
+在这里 on_exit 有重入的风险，例如进程收到 SIGINT 信号后，假如在调用 fclose 后，在 src = NULL 之前，被 SIGQUIT 打断，这时候可能会造成 src 被 close 两次
