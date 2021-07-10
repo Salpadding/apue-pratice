@@ -600,3 +600,25 @@ int main() {
 在这里 on_exit 有重入的风险，例如进程收到 SIGINT 信号后，假如在调用 fclose 后，在 src = NULL 之前，被 SIGQUIT 打断，这时候可能会造成 src 被 close 两次
 
 sigaction 可以指定在信号处理函数执行时需要block的信号，以防止重入现象的发生
+
+另一个问题，signal 不能知道信号的来源，信号的来源可能是来自其他进程，流控算法不应该响应其他进程发送的 ALRM 信号, sigaction 可以通过检查 siginfo_t 类型的 si_code 判断信号是否来自内核q
+
+```c
+static void my_action(int sig, siginfo_t* info, void * _) {
+    // 
+    if(info->si_code == SI_KERNEL) {
+        exit(0);
+    }
+}
+
+sa.sa_flags = SA_SIGINTO;
+```
+
+- 实时信号
+
+标准信号的不足：标准信号可能会丢
+
+标准信号的响应顺序是未定义的，如果一个进程同时收到标准信号和实时信号，优先响应标准信号
+SIGUSR1, SIGUSR2，以及实时信号是没有默认行为的
+
+实时信号不会丢失，实时信号会排队，实时信号在调用处理函数时，收到的实时信号会进入队列
