@@ -1,3 +1,4 @@
+// display error when fopen("non-existing", "r")
 
 #include <stdio.h>
 #include <stdlib.h>
