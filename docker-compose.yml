@@ -1,0 +1,13 @@
+version: '3'
+services: 
+  gcc:
+    image: gcc:11
+    entrypoint: sleep
+    command: 
+    - infinity
+    container_name: gcc
+    volumes: 
+    - ./.vs:/root/.vscode
+    - ./.vss:/root/.vscode-server
+    - .:/root/src
+  
