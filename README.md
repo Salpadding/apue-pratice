@@ -308,7 +308,7 @@ chmod, fchmod
 
 和工作路径有关的系统调用
 
-- chdir
+- chdir 常用于创建守护进程
 - fchdir
 - getcwd
 
@@ -318,8 +318,11 @@ glob 的 pattern
 
 - /etc 目录下所有的文件，不包含隐藏文件 /etc/*
 - /etc 目录下所有的隐藏文件, /etc/.*
+- 子目录下的隐藏文件包含 /. 和 /.., 分别指向当前目录和上一级目录
 
 6. 目录流操作
+
+见 ```fs/readdir.c```
 
 - opendir 打开目录流
 - readdir_r 迭代目录流
@@ -332,15 +335,23 @@ username:*:uid:gid:comment:home:bash
 
 getpwuid, getpwnam 分别根据 uid 和 username 获取用户信息，返回的指针指向的内存位于静态区
 
+
 2. /etc/group
 
 groupname:*:groupdid:
 
+对应的函数有 getgrgid, getgrnam
+
 3. /etc/shadow
 
+记录了用户密码的哈希值
 通过 getspnam, getpass, get_salt, crypt 可以校验用户输入的密码
 
+```fs/validate_passwd.c```
+
 4. 时间戳
+
+各种时间的转换可以参考 apue 6.10
 
 - time 函数，从内核中取时间戳
 
@@ -359,6 +370,8 @@ struct tm *gmtime(const time_t *timep);
 
 - mktime struct tm* -> time_t, 结构体转整数
 
+mktime 会把时间结构体格式化, 适合用于对日期做加减操作
+
 ```c
 time_t mktime(struct tm *tm);
 ```
@@ -370,7 +383,7 @@ time_t mktime(struct tm *tm);
 size_t strftime(char *s, size_t max, const char *format, const struct tm *tm);
 ```            
 
-## 进程
+## 进程环境
 
 - 进程的终止方式
 
@@ -436,6 +449,8 @@ setjmp 函数的特点是调用一次返回两次, jmp_buf 类型的值需要定
 
 注意 jmp_buf 必须声明为静态变量
 
+进程空间具体见 apue 7.7
+
 - 资源获取
 
 ```c
@@ -451,17 +466,21 @@ int setrlimit(int resource, const struct rlimit *rlp);
 rlp 包含了 soft limit 和 hard limit, 所有用户都可以修改 soft limit, 但是 soft limit 不能大于 hard limit, 只有 super user 可以修改 hard limit
 resource 是宏，例如 RLIMIT_CORE
 
+## 进程
+
 进程的产生、消亡，父子进程的关系
 
-进程标识符 pid
+进程标识符 pid, ```getpid, getppid```
 
 进程的产生 fork, vfork
 
 fork 执行一次，返回两次，复制当前进程，包括当前进程的执行位置
 fork 父子进程的区别: fork 的返回值不同， pid 和 ppid 不同，未决信号和文件锁不继承，资源利用量归 0
 fork 之前应该刷新缓冲区, 防止缓冲区被复制到子进程
+fork 不会继承未决信号和文件锁
 
-fork 
+fork:
+
 1. 成功, 父进程返回子进程的 pid, 子进程返回 0
 2. 失败, 父进程返回 -1
 
@@ -504,10 +523,12 @@ pid_t waitpid(pid_t pid, int *wstatus, int options);
 如果 pid = 0, 会 reap any child process whose process group id is equal to that fo the calling process
 如果 pid > 0, 会 reap child process whose process id is equal to the value of pid
 
-- waitid
+
+- exec 函数族
+
+exec 函数族的功能是把当前的进程 image 替换成新的 image, 常见的用法:
 
 
-exec 函数族
 
 用户权限及组权限
 
@@ -526,7 +547,7 @@ exec 之前也要调用 fflush 刷新缓冲流
 
 ```argv[0]``` 的意义: argv[0] 会显示在 ps 命令的进程树中
 
-## 用户权限和组权限
+### 用户权限和组权限
 
 - 普通用户不可以 cat /etc/shadow 但可以用 passwd 改自己的登录口令
 
@@ -534,6 +555,43 @@ real uid, effective uid, 鉴权时候看的是 effective uid
 passwd 有 u+s 位，其他人调用 passwd effective uid 时会切换到 passwd 拥有者的身份
 
 g+s 同理, 其他人调用有 g+s 权限时时 effective gid 会切换到文件所在组 gid
+
+## 进程组、会话和作业控制
+
+1. 控制终端, 会话, 会话首进程
+2. 进程组, 前台进程组, 后台进程组
+
+概念:
+
+1. 会话创建时候没有控制终端, 控制终端是会话首进程打开的
+2. 会话首进程打开控制终端后, 会成为该终端的控制进程
+3. 终端断开后, 内核会向控制进程发送 SIGHUB 信号
+4. 前台进程组是唯一能读写控制终端的进程组
+5. 控制进程通常是 shell, shell 会在收到 SIGHUB 信号后转发给 shell 创建的任务并退出
+
+- get, set 进程组 id
+
+set 进程组可以视为把进程移动到其他进程组
+
+```c
+#include <unistd.h>
+pid_t getpgrp(void);
+
+# 当 pgid 为 0 时, 创建新的进程组, 新的进程组的 id 为 调用进程的 pid
+int setpgid(pid_t pid, pid_t pgid);
+```
+
+- get, set 会话 id
+
+setsid 会创建一个新的会话, 调用进程会成为新会话的首进程, 调用的进程的 pid 会成为新会话的 id
+
+```c
+#define _XOPEN_SOURCE 500
+
+#include <unistd.h>
+pid_t getsid(pid_t pid);
+pid_t setsid(void);
+```
 
 ## 信号
 
