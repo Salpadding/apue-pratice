@@ -5,3 +5,4 @@ node_modules
 .vss
 .vscode
 local
+*.o

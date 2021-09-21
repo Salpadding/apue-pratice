@@ -595,6 +595,39 @@ pid_t getsid(pid_t pid);
 pid_t setsid(void);
 ```
 
+### 解释器文件
+
+解释器文件就是脚本文件, 内容类似下文
+
+```sh
+#!/usr/bin/env bash
+echo -e 'hello world\n'
+```
+
+### acct
+
+进程会计函数, free bsd 方言, 不可移植
+
+类似的还有 python 脚本和 nodejs 脚本, 带 x 权限的脚本文件可以被执行
+
+### 守护进程
+
+守护进程一定是:
+
+1. 会话的 leader, pid = sid, 
+2. 进程组的 leader
+3. 脱离控制终端, 使用 ps 查看, tty 那一列是 ?
+
+创建守护进程的步骤:
+
+1. 使用 fork 创建一个子进程
+2. 调用 setsid 使子进程脱离控制终端, 成为新会话和新进程组的 leader
+3. 切换工作目录到根目录, 重定向 0,1,2 到 /dev/null
+
+### 系统日志
+
+系统日志位于 /var/log 目录下，主日志是 /var/log/messages, 所有守护进程应该通过 syslogd 服务写系统日志
+
 ## 信号
 
 1. 信号是软件中断
