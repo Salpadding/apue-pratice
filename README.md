@@ -528,7 +528,9 @@ pid_t waitpid(pid_t pid, int *wstatus, int options);
 
 exec 函数族的功能是把当前的进程 image 替换成新的 image, 常见的用法:
 
+- execl, execlp, execle 的参数必须用 NULL 结尾
 
+具体见 ps/exec_test.c
 
 用户权限及组权限
 
