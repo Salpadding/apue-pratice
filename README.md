@@ -86,7 +86,7 @@ b->只有五个字节, 1 和 2 的 返回相同，而且难以预知行为
 
 建议 fread 和 fwrite 都采用单字节对象操作
 
-snprintf, gets, fgets 没有解决内存安全的问题，没有检查写越界
+sprintf, gets, fgets 没有解决内存安全的问题，没有检查写越界
 使用 scanf, fscanf, sscanf 要慎用 %s，因为你无法知道 scanf 输入字符串的长度
 
 fseek, ftell 使用了 long 类型，而 long 类型没有标准定义，这就导致在使用 fseek 和 ftell 时不能对大文件作操作
@@ -235,6 +235,11 @@ strace 可以调式系统调用的
 
 dup 和 dup2
 
+重定向标准输出到文件的实现方式:
+
+1. close(1), dup(target_fd)
+2. dup2(target_fd, i) 
+
 dup 的问题在于没有检查传入的文件描述符就是需要重定向的文件描述符，需要先关闭，不具备原子性，不支持多线程
 dup2 会把 newfd 作为 oldfd 的副本，如果必要的话，会关闭 oldfd
 
@@ -244,9 +249,20 @@ dup2(newfd, oldfd)
 /dev/fd 显示当前进程打开的文件描述符
 ## 文件系统
 
-- 目录和文件
 
 - 系统数据文件和信息
+
+stat包含的内容:
+
+1. 设备 id
+2. inode
+3. 权限(文件类型, u+s, g+s, 粘住位)
+4. 文件大小
+5. 占用的扇区数量
+6. number of hard links
+7. atime, mtime, ctime
+
+以上其实是 inode 中包含的内容, 可以注意到 inode 中不包含文件名, 因为文件名保存在目录文件中, 目录文件保存了文件名到 inode 的映射, 或者是子目录
 
 在文件属性中, st_size 和  st_blocks * 512 没有必然联系，对于普通文件，
 st_blocks * 512 会大于等于 st_size，对于空洞文件 st_size 会远大于 st_blocks * 512
@@ -279,6 +295,11 @@ chmod, fchmod
 
 是一个新的文件，可以有不同的 inode 等文件属性，不占磁盘空间，所有信息都存在 inode 中
 
+```python
+# 在一个 4k 数据块大小的 ext2 文件系统中，文件的最大大小
+# 12 个数据块指针 + 1 个一级间接指针 + 1个 2 级间接指针 + 1个3级间接指针 
+(12 + 256 + 256 * 256 + 256 * 256 * 256) * 4096
+```
 
 和硬链接有关的函数:
 

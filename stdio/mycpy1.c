@@ -14,7 +14,7 @@ size_t safe_fread(FILE * fd, void * buf, size_t count) {
     return fread(buf, 1, count, fd);
 }
 
-size_t safe_fwrite(FILE * fd, void * buf, size_t count) {
+size_t safe_fwrite(FILE * fd, const void * buf, size_t count) {
     return fwrite(buf, 1, count, fd);
 }
 

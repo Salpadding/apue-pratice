@@ -15,6 +15,7 @@ int main(int argc, char ** argv) {
         exit(0);
     }
 
+    // 这两句话很重要, 如果 sz 没有初始化，可能会产生段错误
     char * line_ptr = NULL;
     size_t sz = 0;
     ssize_t r = 0;
