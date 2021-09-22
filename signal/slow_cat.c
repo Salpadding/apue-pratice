@@ -1,3 +1,4 @@
+// gcc mytbf.c mytbf.h slow_cat.c  -o slow_cat.out
 #include <stdio.h>
 #include <stdlib.h>
 #include "./mytbf.h"
@@ -11,23 +12,26 @@
 #define BURST 1024
 #define BUF_SIZE 1024
 
-
-int main(int argc, char** argv) {
-    if(argc < 2) {
+int main(int argc, char **argv)
+{
+    if (argc < 2)
+    {
         fprintf(stderr, "print content of file into standard output, Usage: %s filename\n", argv[0]);
         exit(1);
     }
 
     int src = open(argv[1], O_RDONLY);
-    if(src < 0) {
+    if (src < 0)
+    {
         perror("open()");
         exit(1);
     }
 
-    mytbf_t* p = mytbf_init(CPS, BURST);
+    int p = mytbf_init(CPS, BURST);
     static char buf[BUF_SIZE];
 
-    if(p == NULL) {
+    if (p < 0)
+    {
         fprintf(stderr, "create job failed\n");
         exit(1);
     }
@@ -37,29 +41,37 @@ int main(int argc, char** argv) {
         // 进入阻塞 等待信号到来
         int fetched = mytbf_fetchtoken(p, BUF_SIZE);
 
-        if(fetched == 0)
+        if (fetched == 0)
             continue;
 
         ssize_t sz = read(src, buf, fetched);
 
-        if(sz == 0)
+        if (sz == 0)
             break;
 
-        if(sz < 0) {
-            if(errno == EINTR) {
+        if (sz < 0)
+        {
+            // may interrupted by signal
+            if (errno == EINTR)
+            {
                 continue;
             }
             perror("read()");
             exit(1);
         }
+
+        // return unused token
         mytbf_returntoken(p, fetched - sz);
 
+        // write buf to stdout
         ssize_t cur = 0;
-        while(cur != sz) {
+        while (cur != sz)
+        {
             ssize_t writed = write(1, buf + cur, sz);
 
-            if(writed < 0) {
-                if(errno == EINTR)
+            if (writed < 0)
+            {
+                if (errno == EINTR)
                     continue;
                 perror("write()");
                 exit(1);
@@ -68,6 +80,6 @@ int main(int argc, char** argv) {
             cur += writed;
         }
     }
-    
+
     mytbf_destroy(p);
 }

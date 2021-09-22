@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <signal.h>
 
 void alarm_handler(int sign) {
     printf("alarm\n");

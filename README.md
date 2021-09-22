@@ -628,6 +628,22 @@ echo -e 'hello world\n'
 
 系统日志位于 /var/log 目录下，主日志是 /var/log/messages, 所有守护进程应该通过 syslogd 服务写系统日志
 
+系统日志相关的函数:
+
+```c
+#include <syslog.h>
+
+void openlog(const char* ident, int option, int facility);
+void syslog(int priority, const char* format, ...);
+void closelog(void);
+```
+
+### 单实例守护进程
+
+锁文件: /var/run/daemon_name.pid
+守护进程开机启动脚本: /etc/rc.d/rc.local, 不同 linux 发行版的配置方式不同
+
+
 ## 信号
 
 1. 信号是软件中断
@@ -636,6 +652,36 @@ echo -e 'hello world\n'
 4. 信号会打断阻塞的系统调用，也就是说当调用 open, write, read 时 errno 可能会是被信号打断了，是一个假错误，如果进程被 sleep 阻塞，也可能提前结束阻塞
 5. 信号的行为不可靠，标准信号有可能会丢失，信号处理函数在执行时，如果同一个信号又收到了，当前处理函数的执行现场可能会被丢弃，信号处理函数的触发和内核的进程调度有关，内核的进程调度是不可靠的，标准信号的响应没有严格的顺序，标准信号对应了一个 pending 位图，所以多个相同的标准信号可能只会被响应一次。
 6. 可重入函数，第一次调用还没有结束，就发生了第二次调用，第一次调用对第二次调用的结果没有产生影响，所有的系统调用都是可重入的，一部分库函数也是可重入的，比如 rand_r，不可重入的函数不可以用于信号处理函数
+
+理解信号的关键在于 kernal 态转换到 user 态的时间点
+
+- signal 函数
+
+signal 函数接受一个信号的值, 和一个函数指针
+
+```c
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <signal.h>
+
+void int_handler(int sign) {
+    printf("SIG_INT!\n");
+    fflush(NULL);
+}
+
+int main() {
+    // ignore SIG_INT which send by ctrl+c
+    signal(SIGINT, SIG_IGN);
+
+    signal(SIGINT, int_handler);
+    for(int i = 0; i < 10; i++) {
+        write(1, "*", 1);
+        sleep(1);
+    }
+    return 0;
+}
+```
 
 - kill 函数
 
@@ -739,6 +785,16 @@ static void my_action(int sig, siginfo_t* info, void * _) {
 
 sa.sa_flags = SA_SIGINTO;
 ```
+
+- 令牌桶算法
+
+每隔一秒钟生成 CPS 个 token
+见 ```signal/mytbf.h```
+
+- any timer
+
+使用 alarm 可以实现计划任务
+见 ```signal/anytimer.h```
 
 - 实时信号
 

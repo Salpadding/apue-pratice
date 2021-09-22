@@ -23,6 +23,7 @@ static volatile sig_handler func;
 
 // alarm signal handler
 static void handle(int sig) {
+    alarm(1);
     for(int i = 0; i < MAX_TBF; i++) {
         struct mytbf_st* p = jobs[i];
         if(p != NULL)
@@ -30,18 +31,16 @@ static void handle(int sig) {
     }
 }
 
+
+// initialize this library
 static void mytbf_load() {
     if(inited)
         return;
     inited = 1;        
+    alarm(1);
+
+    // save the original sigalrm handler
     func = signal(SIGALRM, handle);
-    struct itimerval value;
-    struct timeval v;
-    v.tv_sec = 1;
-    v.tv_usec = 0;
-    value.it_interval = v;
-    value.it_value = v;
-    setitimer(ITIMER_REAL, &value, NULL);
 }
 
 static void mytbf_unload() {
@@ -68,16 +67,16 @@ static int get_pos() {
     return -1;
 }
 
-mytbf_t *mytbf_init(int cps,int burst) {
+int mytbf_init(int cps,int burst) {
     mytbf_load();
     struct mytbf_st* m = malloc(sizeof(struct mytbf_st));
 
     if(m == NULL)
-        return NULL;
+        return -1;
 
     int i = get_pos();
     if(i < 0)
-        return NULL;
+        return -1;
 
     m->cps = cps;
     m->burst = burst;
@@ -85,20 +84,20 @@ mytbf_t *mytbf_init(int cps,int burst) {
     m->pos = i;
     jobs[i] = m;
 
-    return m;
+    return i;
 }
 
-int mytbf_returntoken(mytbf_t * bf, int token) {
-    struct mytbf_st* p = bf;
+int mytbf_returntoken(int id, int token) {
+    struct mytbf_st* p = jobs[id];
     p->token += token;
     p->token = MIN(p->token, p->burst);
     return token;
 }
 
-int mytbf_fetchtoken(mytbf_t * bf, int token) {
-    struct mytbf_st* p = bf;
+int mytbf_fetchtoken(int id, int token) {
+    struct mytbf_st* p = jobs[id];
     while(p->token == 0) {
-        pause(); // 等待 alarm 信号打断阻塞
+        pause(); // blocked until sigalrm received
     }    
 
     int r = MIN(p->token, token);
@@ -106,8 +105,8 @@ int mytbf_fetchtoken(mytbf_t * bf, int token) {
     return r;
 }
 
-int mytbf_destroy(mytbf_t * bf) {
-    struct mytbf_st* p = bf;
+int mytbf_destroy(int id) {
+    struct mytbf_st* p = jobs[id];
     jobs[p->pos] = NULL;
     free(p);
     return 1;
