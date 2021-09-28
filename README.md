@@ -706,6 +706,10 @@ int raise(int sig);
 
 给当前进程发送一个信号，相当于 raise(getpid(), sig) 或者说 pthread_kill(pthread_self(), sig)
 
+- abort 函数
+
+给自己发送一个 SIGABRT 信号, 目的是停止并产生一个 core dump 文件
+
 - alarm 函数
 
 以秒为单位，在一定时间后，发送 SIG_ALARM 信号给自己
@@ -733,7 +737,27 @@ int pause(void);
 
 - 信号屏蔽字
 
-信号屏蔽字可以决定信号什么时候被响应
+信号屏蔽字可以决定信号什么时候被响应, 具体参考 ```signal/int.c```, 被屏蔽的信号会在解除屏蔽的时候被响应
+
+- system 函数
+
+在使用到信号的程序中使用 system 函数, 需要 ignore SIGINT 和 SIGQUIT, block 住 SIGCHLD
+
+- 信号集
+
+```c
+#include <signal.h>
+
+int sigemptyset(sigset_t* set);
+int sigfillset(sigset_t* set);
+int sigaddset(sigset_t* set, int signum);
+int sigdelset(sigset_t* set, int signum);
+int sigismember(sigset_t* set, int signum);
+```
+
+- sigsuspend
+
+sigsuspend = sigprocmask + pause 的原子操作, 解除信号屏蔽字的同时进入阻塞状态
 
 - sigpending 
 
@@ -809,22 +833,145 @@ SIGUSR1, SIGUSR2，以及实时信号是没有默认行为的
 
 1. 线程的概念
 
-线程是一个正在运行的函数
+线程是一个正在运行的函数, 在线程这个话题中,贯穿始终的是 pthread_t 类型
+
+
+```c
+// 比较两个线程 id 是否相等
+#include <pthread.h>
+int pthread_equal(pthread_t t1, pthread_t t2);
+
+// 获取当前线程的线程标识
+pthread_t pthread_self();
+```
 
 2. 线程的创建(pthread_create)
 
+```c
+#include <pthread.h>
+int pthread_create(/*用于回填线程标识*/ pthread_t* thread, /*线程属性,一般填 NULL */ const pthread_attr_t* attr, /*线程入口函数*/ void*(*start_routine) (void*), void* arg);
 
+// 线程的入口函数接收值是 void*, 返回值也是 void*
+// 成功返回0, 失败返回 errno
+```
 
 3. 线程的终止(pthread_exit) 、收尸和栈的清理
+
+- 线程从启动函数返回
+- 线程可以被同一进程中的其他线程取消
+- 当前线程调用 pthread_exit 函数
 
 
 4. 线程同步
 
-- 互斥量
+- pthread_join
 
+相当于进程之间的 wait
 
-5. 线程属性、线程同步的属性
+5. 线程钩子函数
 
-6. 线程和信号的关系、线程与 fork 的关系
+具体见 thread/clean.c
 
-7. 可重入
+```c
+#include <pthread.h>
+void pthread_cleanup_push(void (*routine) (void*), void* arg);
+void pthread_cleanup_pop(void *arg);
+```
+
+6. 线程的取消
+
+这里要注意取消点的概念
+
+```c
+#include <pthread.h>
+void pthread_cancel(pthread_t thread);
+```
+
+7. 互斥量
+
+```c
+#include <pthread.h>
+PTHREAD_MUTEX_INITIALIZER; // 这是一个静态初始化的宏
+
+// 初始化一个互斥量
+int pthread_mutex_init(pthread_mutex_t* mtx, const pthread_mutexattr_t* attr);
+
+// 销毁一个互斥量
+int pthread_mutex_destroy(pthread_mutex_t* mtx);
+
+// 锁定,死等
+int pthread_mutex_lock(pthread_mutex_t* mtx);
+
+// 尝试锁定,不会死等
+int pthread_mutex_trylock(pthread_mutex_t* mtx);
+
+// 解锁互斥量
+int pthread_mutex_unlock(pthread_mutex_t* mtx);
+
+// init_routine 只会被调用一次
+int pthread_once(pthread_once_t* once_ctl, void (*init_routine)(void));
+```
+
+8. 条件变量
+
+```c
+#include <pthread.h>
+// 初始化条件变量
+int pthread_cond_init(pthread_cond_t *cond, const pthread_condattr_t *attr);
+
+// 等待条件变量,不是死等,一般写在while循环当中
+int pthread_cond_timedwait(pthread_cond_t *cond, pthread_mutex_t *mutex, const struct timespec *abstime);
+
+// 等待条件变量,死等,一般写在while循环当中
+int pthread_cond_wait(pthread_cond_t *cond, pthread_mutex_t *mutex);
+
+// 通知被所有 pthread_cond_wait 阻塞的线程,条件变量发生改变
+int pthread_cond_broadcast(pthread_cond_t *cond);
+
+// 通知某个被 pthread_cond_wait 阻塞的线程,条件变量发生改变
+int pthread_cond_signal(pthread_cond_t *cond)
+
+// 销毁条件变量
+int pthread_cond_destroy(pthread_cond_t *cond);
+```
+
+9. 信号量
+
+```c
+#include <semaphore.h>
+
+// 初始化一个信号量
+int sem_init(sem_t* sem, int pshared, unsigned int value);
+
+// 阻塞等待信号量到来
+int sem_wait(sem_t* sem);
+int sem_trywait(sem_t* sem);
+int sem_timedwait(sem_t* sem, const struct timespec *abs_timeout);
+
+// 释放信号量
+int sem_post(sem_t* sem);
+```
+
+10. 读写锁的原理
+
+1. Read 之间不会互斥, 但是要有上限, 超过上限则阻塞,可以用信号量实现
+2. 为了防止 Write 线程被饿死,当收到 Write 请求时,要阻塞后续的 Read 请求,可以用条件变量实现
+
+11. 线程属性
+
+```c
+#include <pthread.h>
+
+// 初始化线程属性
+int pthread_attr_init(pthread_attr_t* attr);
+
+// 销毁线程属性
+int pthread_attr_destroy(pthread_attr_t* attr);
+
+// 控制线程的其他属性请 man pthread_attr_init, 参考 SEE ALSO 部分
+```
+
+## 网络基础
+
+1. 安装一个或多个交换机, 实现 osi 七层模型的第二层, 局域网中的计算机通过网线或者 wifi 连接到交换机, 可以通过 mac 地址发送数据帧
+2. 安装一个路由器, 路由器拥有独立的 mac 地址, 包含 dhcp 功能, 路由器连接到交换机, 把自己作为局域网的网关, 分配的网段为 192.168.1.0/24, 给自己分配了 192.168.1.1 这个 ip 地址, 

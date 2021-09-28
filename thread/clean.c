@@ -16,10 +16,12 @@ static void* my_echo(void* _) {
     // pthread_cleanup_push 和 pthread_cleanup_pop 必须成对出现
     pthread_cleanup_push(cleanup_func, "clean:1");
     pthread_cleanup_push(cleanup_func, "clean:2");
-    pthread_cleanup_pop(1); // 1 表示调用
-    pthread_cleanup_pop(1);
-
     pthread_exit(NULL);
+
+    // 这两句话可能不会执行到,但必须要有,否则会报语法错误
+    pthread_cleanup_pop(1); 
+    // 1 表示调用
+    pthread_cleanup_pop(1);
 }
 
 int main() {
