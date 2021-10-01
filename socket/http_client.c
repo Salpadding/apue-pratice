@@ -68,6 +68,8 @@ void download(const char *host, int port, const char *uri, const char *out_path)
     int c = 0;
     int status = 0;
     int body = 0;
+
+    // 如果使用 HTTP/1.1 要读取 response 中的 content-length, 并且在 fpuc 时候计数,当写够 content-length 个字节时,断开连接
     while ((c = fgetc(fp)) != EOF)
     {
         if (c == '\r' && status == 0)
