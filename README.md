@@ -1001,14 +1001,14 @@ int socket(int domain, int type, int protocol);
 
 被动端: 
 
-- 被动端取得 socket
-- 被动端给 socket 取得地址
-- 收/发消息
-- 关闭 socket
+- 被动端取得 socket ```socket```
+- 被动端给 socket 取得地址 ```bind```
+- 收/发消息 ```recv, recvfrom```
+- 关闭 socket ```close```
 
 主动端:
 
-- 取得 socket
+- 取得 socket ```socket```
 - 给 socket 取得地址, 这一步可以省略, 由操作系统随机分配
-- 发/收消息
-- 关闭 socket
+- 发/收消息 ```sendto```
+- 关闭 socket ```close```
