@@ -971,7 +971,44 @@ int pthread_attr_destroy(pthread_attr_t* attr);
 // 控制线程的其他属性请 man pthread_attr_init, 参考 SEE ALSO 部分
 ```
 
-## 网络基础
+## 进程间通信
 
 1. 安装一个或多个交换机, 实现 osi 七层模型的第二层, 局域网中的计算机通过网线或者 wifi 连接到交换机, 可以通过 mac 地址发送数据帧
 2. 安装一个路由器, 路由器拥有独立的 mac 地址, 包含 dhcp 功能, 路由器连接到交换机, 把自己作为局域网的网关, 分配的网段为 192.168.1.0/24, 给自己分配了 192.168.1.1 这个 ip 地址, 
+
+
+### 套接字
+
+1. 大小端的问题
+2. 编译器对齐的问题
+3. 类型长度的问题
+
+socket 是操作系统提供的中间层,开发者无需关心底层的通信协议,通过文件描述符操作
+
+```c
+#include <sys/types.h>          /* See NOTES */
+#include <sys/socket.h>
+
+
+// 创建 udp socket: socket(AF_INET, SOCK_DGRM, 0)
+// 创建 tcp socket: socket(AF_INET, SOCK_STREAM, 0)
+int socket(int domain, int type, int protocol);
+int socket(int domain, int type, int protocol);
+
+```
+
+4. 套接字编程步骤
+
+被动端: 
+
+- 被动端取得 socket
+- 被动端给 socket 取得地址
+- 收/发消息
+- 关闭 socket
+
+主动端:
+
+- 取得 socket
+- 给 socket 取得地址, 这一步可以省略, 由操作系统随机分配
+- 发/收消息
+- 关闭 socket
