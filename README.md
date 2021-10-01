@@ -997,7 +997,7 @@ int socket(int domain, int type, int protocol);
 
 ```
 
-4. 套接字编程步骤
+4. udp 套接字编程步骤
 
 被动端: 
 
@@ -1012,3 +1012,22 @@ int socket(int domain, int type, int protocol);
 - 给 socket 取得地址, 这一步可以省略, 由操作系统随机分配
 - 发/收消息 ```sendto```
 - 关闭 socket ```close```
+
+5. tcp 套接字编程步骤
+
+被动端:
+
+- 获取 socket
+- socket 取得地址
+- socket 置为监听模式
+- 接受连接
+- 收发消息
+- 关闭
+
+主动端:
+
+- 获取 socket
+- 给 socket 取得地址,这一步可以省略,由操作系统随机分配
+- 发送连接
+- 收发消息
+- 关闭

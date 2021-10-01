@@ -76,8 +76,6 @@ void server(const char* host, const char* iface)
         exit(1);
     }
 
-    addr.sin_addr.s_addr = 0;
-
     if (
         bind(sd, (void *)&addr, sizeof(addr)) < 0)
     {
