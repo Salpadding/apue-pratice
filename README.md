@@ -974,8 +974,84 @@ int pthread_attr_destroy(pthread_attr_t* attr);
 ## 进程间通信
 
 1. 安装一个或多个交换机, 实现 osi 七层模型的第二层, 局域网中的计算机通过网线或者 wifi 连接到交换机, 可以通过 mac 地址发送数据帧
-2. 安装一个路由器, 路由器拥有独立的 mac 地址, 包含 dhcp 功能, 路由器连接到交换机, 把自己作为局域网的网关, 分配的网段为 192.168.1.0/24, 给自己分配了 192.168.1.1 这个 ip 地址, 
+2. 安装一个路由器, 路由器拥有独立的 mac 地址, 包含 dhcp 功能, 路由器连接到交换机, 把自己作为局域网的网关, 分配的网段为 192.168.1.0/24, 给自己分配了 192.168.1.1 这个 ip 地址
 
+
+### 管道
+
+管道的特点:
+
+- 由内核支持, 单工, 自动同步
+
+```c
+#include <unistd.h>
+// 真正的返回值是 pipefd, pipefd[0] 用于读, pipefd[1] 用于写
+int pipe(int pipefd[2]);
+```
+
+使用场景:
+
+1. 父子进程间通信可以使用匿名管道,利用父子进程共享文件描述符的特性
+2. 不具有亲缘关系的进程之间需要使用具名管道 ```mkfifo```
+
+
+### SysV IPC
+
+分为以下几类
+
+- 消息队列
+- 共享内存
+- 信号量数组
+
+1. 操作概括
+
+
+```c
+#include <sys/types.h>
+#include <sys/ipc.h>
+#include <sys/msg.h>
+#include <sys/sem.h>
+#include <sys/shm.h>
+
+// 创建消息队列
+int msgget(key_t key, int msgflg);
+
+// 发送到消息队列
+int msgsnd(int msqid, const void *msgp, size_t msgsz, int msgflg);
+
+// 从消息队列中接收
+ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp, int msgflg);
+
+// 创建信号量数组
+int semget(key_t key, int nsems, int semflg);
+
+// 操作信号量数组
+int semop(int semid, struct sembuf *sops, size_t nsops);
+
+// 创建共享内存
+int shmget(key_t key, size_t size, int shmflg);
+
+// 映射共享内存
+void *shmat(int shmid, const void *shmaddr, int shmflg);
+
+// 解除映射共享内存
+int shmdt(const void *shmaddr);
+```
+
+2. key 值的创建
+
+```c
+#include <sys/types.h>
+#include <sys/ipc.h>
+
+key_t ftok(const char* pathname, int proj_id);
+```
+
+3. 消息队列使用见 ```ipc/msg.c```
+
+消息队列的大小在 ulimit 里面作了限制
+
+4. 信号量数组的使用见 ```ipc/sem_arr.c```
 
 ### 套接字
 
@@ -1014,6 +1090,8 @@ int socket(int domain, int type, int protocol);
 - 关闭 socket ```close```
 
 5. tcp 套接字编程步骤
+
+tcp 和 udp 的不同点在于, tcp 需要 listen + accept, accept 后会获得一个文件描述符
 
 被动端:
 
