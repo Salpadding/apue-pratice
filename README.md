@@ -971,6 +971,28 @@ int pthread_attr_destroy(pthread_attr_t* attr);
 // 控制线程的其他属性请 man pthread_attr_init, 参考 SEE ALSO 部分
 ```
 
+## 高级 io
+
+如果在非阻塞 io 中使用 while 循环, 大部分 cpu 时间会用在 EAGIN 上面, select 可以监视多个文件描述符,使用了条件变量的思想
+
+- select
+
+select 最古老, 可移植性好, 缺点是使用比较麻烦
+
+- poll
+
+poll 比 select 使用方便些
+
+- epoll
+
+epoll 只有 linux 平台才可以使用
+
+### select
+
+
+
+
+
 ## 进程间通信
 
 1. 安装一个或多个交换机, 实现 osi 七层模型的第二层, 局域网中的计算机通过网线或者 wifi 连接到交换机, 可以通过 mac 地址发送数据帧
