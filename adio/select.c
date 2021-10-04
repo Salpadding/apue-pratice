@@ -156,7 +156,7 @@ int pipe_push(struct pipe_st *p, int n)
                 break;
             }
             // write is available
-            sz = write(p[i].dst, p[i].buf, BUF_SIZE);
+            sz = write(p[i].dst, p[i].buf, p[i].len);
             printf("write success i = %d, len = %ld\n", i, sz);
             p[i].off += sz;
             if (p[i].off == p[i].len)
@@ -207,9 +207,8 @@ int main(int argc, char **argv)
         pipe_init(ps + i, src, dst);
     }
 
-    int limits = 2048;
-    int j = 0;
-    while ((++j) < limits)
+
+    while (1)
     {
         int err = pipe_push(ps, pipes);
         if (err)
@@ -221,7 +220,7 @@ int main(int argc, char **argv)
         int finished = 1;
         for (int i = 0; i < pipes; i++)
         {
-            if (ps[i].state != EOF && ps[i].state != STATE_ERR)
+            if (ps[i].state != STATE_EOF && ps[i].state != STATE_ERR)
             {
                 finished = 0;
             }
