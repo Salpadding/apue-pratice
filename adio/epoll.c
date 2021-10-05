@@ -11,6 +11,7 @@
 #include <sys/epoll.h>
 
 #define BUF_SIZE 4096
+#define MAX_EVENTS 1024
 
 void my_sleep(int seconds)
 {
@@ -69,7 +70,7 @@ int pipe_push(struct pipe_st *p, int n)
 {
     printf("pipe push\n");
     // since Linux 2.6.8, size is ignored
-    int ep = epoll_create(1);
+    int ep = epoll_create(MAX_EVENTS);
 
     if (ep < 0)
     {
@@ -115,7 +116,6 @@ int pipe_push(struct pipe_st *p, int n)
     // wait for some file descriptor is ready
 
     int fds = 0;
-    #define MAX_EVENTS 1024
     struct epoll_event evs[MAX_EVENTS];
     while ((fds = epoll_wait(ep, evs, MAX_EVENTS, -1)) < 0)
     {
