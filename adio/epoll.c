@@ -7,11 +7,10 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <string.h>
-#include <poll.h>
 #include <signal.h>
+#include <sys/epoll.h>
 
 #define BUF_SIZE 4096
-#define _GNU_SOURCE
 
 void my_sleep(int seconds)
 {
@@ -47,6 +46,8 @@ struct pipe_st
     ssize_t len;
     // error number
     int err;
+    // custom data
+    void *ptr;
 };
 
 // the file descriptor should be opened async
@@ -67,33 +68,47 @@ void pipe_init(struct pipe_st *p, int src, int dst)
 int pipe_push(struct pipe_st *p, int n)
 {
     printf("pipe push\n");
-    struct pollfd *polls = malloc(sizeof(struct pollfd) * n);
-    if (polls == NULL)
+    // since Linux 2.6.8, size is ignored
+    int ep = epoll_create(1);
+
+    if (ep < 0)
     {
-        fprintf(stderr, "malloc error\n");
+        perror("epoll()");
+        return -errno;
     }
 
     for (int i = 0; i < n; i++)
     {
-        polls[i * 2].fd = p[i].src;
-        polls[i * 2 + 1].fd = p[i].dst;
+        int *ptr = malloc(sizeof(int));
+        *ptr = i;
+        p[i].ptr = ptr;
 
         if (p[i].state == STATE_READ)
         {
-            polls[i * 2].events = POLLIN;
-            printf("add %d.src = %d %d to reads\n", i, p[i].src, polls[i * 2].fd);
+            struct epoll_event e;
+            e.events = EPOLLIN | EPOLLERR;
+            e.data.fd = p[i].src;
+            // 传一个指针用于接收
+            e.data.ptr = p + i;
+            epoll_ctl(ep, EPOLL_CTL_ADD, p[i].src, &e);
+            printf("add %d.src = %d to reads\n", i, p[i].src);
         }
         if (p[i].state == STATE_WRITE)
         {
-            polls[i * 2 + 1].events = POLLOUT;
-            printf("add %d.dst = %d %d to writes\n", i, p[i].dst, polls[i * 2 + 1].fd);
+            struct epoll_event e;
+            e.events = EPOLLOUT | EPOLLERR;
+            e.data.fd = p[i].dst;
+            e.data.ptr = p + i;
+            epoll_ctl(ep, EPOLL_CTL_ADD, p[i].dst, &e);
+            printf("add %d.dst = %d to writes\n", i, p[i].dst);
         }
     }
 
     // wait for some file descriptor is ready
 
     int fds = 0;
-    while ((fds = poll(polls, n * 2, -1)) < 0)
+    struct epoll_event *evs = malloc(sizeof(struct epoll_event) * n * 2);
+    while ((fds = epoll_wait(ep, evs, n * 2, -1)) < 0)
     {
         if (errno != EINTR)
         {
@@ -104,64 +119,68 @@ int pipe_push(struct pipe_st *p, int n)
     printf("ready fds = %d\n", fds);
 
     ssize_t sz;
-    for (int i = 0; i < n; i++)
+    for (int i = 0; i < fds; i++)
     {
-        printf("current i = %d\n", i);
-        int src_i = i * 2;
-        int dst_i = i * 2 + 1;
-        switch (p[i].state)
+        struct pipe_st *pi = evs[i].data.ptr;
+        int *j = pi->ptr;
+
+        switch (pi->state)
         {
         case STATE_READ:
-
-            if (POLLERR & polls[src_i].revents)
+            if (EPOLLERR & evs[i].events)
             {
-                printf("%d.src %d %d in excepts\n", i, p[i].src, polls[src_i].fd);
-                p[i].state = STATE_ERR;
+                printf("%d.src %d %d in excepts\n", *j, pi->src, evs[i].data.fd);
+                pi->state = STATE_ERR;
                 break;
             }
-            if ((POLLIN & polls[src_i].revents) == 0)
+            if ((EPOLLIN & evs[i].events) == 0)
             {
-                printf("%d.src %d %d not in reads\n", i, p[i].src, polls[src_i].fd);
+                printf("%d.src %d %d not in reads\n", *j, pi->src, evs[i].data.fd);
                 break;
             }
             // read is available
-            sz = read(p[i].src, p[i].buf, BUF_SIZE);
+            printf("%d.src %d %d in reads\n", *j, pi->src, evs[i].data.fd);
+            sz = read(pi->src, pi->buf, BUF_SIZE);
             printf("read sz %ld from i = %d\n", sz, i);
             if (sz == 0)
             {
-                p[i].state = STATE_EOF;
+                pi->state = STATE_EOF;
                 break;
             }
 
-            p[i].state = STATE_WRITE;
-            p[i].off = 0;
-            p[i].len = sz;
+            pi->state = STATE_WRITE;
+            pi->off = 0;
+            pi->len = sz;
             break;
         case STATE_WRITE:
-            if (POLLERR & polls[dst_i].revents)
+            if (EPOLLERR & evs[i].events)
             {
-                printf("%d.dst %d %d in excepts\n", i, p[i].dst, polls[dst_i].fd);
-                p[i].state = STATE_ERR;
+                printf("%d.dst %d %d in excepts\n", *j, pi->dst, evs[i].data.fd);
+                pi->state = STATE_ERR;
                 break;
             }
-            if ((POLLOUT & (polls[dst_i].revents)) == 0)
+            if ((EPOLLIN & evs[i].events) == 0)
             {
-                printf("%d.dst %d %d not in writes\n", i, p[i].dst, polls[dst_i].fd);
+                printf("%d.dst %d %d not in writes\n", *j, pi->dst, evs[i].data.fd);
                 break;
             }
             // write is available
-            sz = write(p[i].dst, p[i].buf, p[i].len);
-            printf("write success i = %d, len = %ld\n", i, sz);
-            p[i].off += sz;
-            if (p[i].off == p[i].len)
-                p[i].state = STATE_READ;
+            printf("%d.dst %d %d in writes\n", *j, pi->dst, evs[i].data.fd);
+            sz = write(pi->dst, pi->buf, pi->len);
+            printf("write success i = %d, len = %ld\n", *j, sz);
+            pi->off += sz;
+            if (pi->off == pi->len)
+                pi->state = STATE_READ;
             break;
         default:
             break;
         }
     }
 
-    free(polls);
+    close(ep);
+
+    for (int i = 0; i < n; i++)
+        free(p[i].ptr);
     return 0;
 }
 
