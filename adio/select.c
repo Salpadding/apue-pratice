@@ -8,7 +8,7 @@
 #include <fcntl.h>
 #include <string.h>
 
-#define BUF_SIZE 128
+#define BUF_SIZE 4096
 
 void my_sleep(int seconds)
 {
@@ -48,7 +48,7 @@ struct pipe_st
 
 // the file descriptor should be opened async
 // return -errno if failed
-int pipe_init(struct pipe_st *p, int src, int dst)
+void pipe_init(struct pipe_st *p, int src, int dst)
 {
     p->src = src;
     p->dst = dst;
@@ -75,10 +75,10 @@ int pipe_push(struct pipe_st *p, int n)
 
     for (int i = 0; i < n; i++)
     {
-        if (p->src > nfds)
-            nfds = p->src;
-        if (p->dst > nfds)
-            nfds = p->dst;
+        if (p[i].src > nfds)
+            nfds = p[i].src;
+        if (p[i].dst > nfds)
+            nfds = p[i].dst;
 
         if (p[i].state == STATE_READ)
         {
@@ -93,15 +93,19 @@ int pipe_push(struct pipe_st *p, int n)
             FD_SET(p[i].dst, &writes);
             FD_SET(p[i].dst, &excepts);
         }
+
+        printf("%d.src in reads = %d\n", i, FD_ISSET(p[i].src, &reads));
+        printf("%d.dst in writes = %d\n", i, FD_ISSET(p[i].dst, &writes));
     }
 
     int fds = 0;
-    printf("try to select()\n");
+    printf("try to select() nfds = %d\n", nfds);
+    fflush(NULL);
     while (1)
     {
         // blocking until some file descriptor is ready
         fds = select(nfds + 1, &reads, &writes, &excepts, NULL);
-        printf("fds = %d", fds);
+        printf("fds = %d\n", fds);
         if (fds < 0)
         {
             if (errno == EINTR)
@@ -230,11 +234,12 @@ int main(int argc, char **argv)
             break;
     }
 
-    for (int i = 0; i < pipes; i++)
+    for (int i = pipes - 1; i >= 0; i--)
     {
         close(ps[i].dst);
         close(ps[i].src);
     }
 
+    free(ps);
     exit(0);
 }
