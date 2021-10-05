@@ -90,7 +90,11 @@ int pipe_push(struct pipe_st *p, int n)
             e.data.fd = p[i].src;
             // 传一个指针用于接收
             e.data.ptr = p + i;
-            epoll_ctl(ep, EPOLL_CTL_ADD, p[i].src, &e);
+            if (epoll_ctl(ep, EPOLL_CTL_ADD, p[i].src, &e) < 0)
+            {
+                perror("epoll_ctl()");
+                exit(1);
+            }
             printf("add %d.src = %d to reads\n", i, p[i].src);
         }
         if (p[i].state == STATE_WRITE)
@@ -99,7 +103,11 @@ int pipe_push(struct pipe_st *p, int n)
             e.events = EPOLLOUT | EPOLLERR;
             e.data.fd = p[i].dst;
             e.data.ptr = p + i;
-            epoll_ctl(ep, EPOLL_CTL_ADD, p[i].dst, &e);
+            if (epoll_ctl(ep, EPOLL_CTL_ADD, p[i].dst, &e) < 0)
+            {
+                perror("epoll_ctl()");
+                exit(1);
+            }
             printf("add %d.dst = %d to writes\n", i, p[i].dst);
         }
     }
@@ -107,8 +115,9 @@ int pipe_push(struct pipe_st *p, int n)
     // wait for some file descriptor is ready
 
     int fds = 0;
-    struct epoll_event *evs = malloc(sizeof(struct epoll_event) * n * 2);
-    while ((fds = epoll_wait(ep, evs, n * 2, -1)) < 0)
+    #define MAX_EVENTS 1024
+    struct epoll_event evs[MAX_EVENTS];
+    while ((fds = epoll_wait(ep, evs, MAX_EVENTS, -1)) < 0)
     {
         if (errno != EINTR)
         {
@@ -121,13 +130,14 @@ int pipe_push(struct pipe_st *p, int n)
     ssize_t sz;
     for (int i = 0; i < fds; i++)
     {
+        printf("evs[i].data.fd = %d\n", evs[i].data.fd);
         struct pipe_st *pi = evs[i].data.ptr;
         int *j = pi->ptr;
 
         switch (pi->state)
         {
         case STATE_READ:
-            if (EPOLLERR & evs[i].events)
+            if (EPOLLERR & evs[i].events || evs[i].events & EPOLLHUP)
             {
                 printf("%d.src %d %d in excepts\n", *j, pi->src, evs[i].data.fd);
                 pi->state = STATE_ERR;
@@ -141,6 +151,12 @@ int pipe_push(struct pipe_st *p, int n)
             // read is available
             printf("%d.src %d %d in reads\n", *j, pi->src, evs[i].data.fd);
             sz = read(pi->src, pi->buf, BUF_SIZE);
+
+            if(sz < 0)
+            {
+                perror("read()");
+                break;
+            }
             printf("read sz %ld from i = %d\n", sz, i);
             if (sz == 0)
             {
@@ -153,7 +169,7 @@ int pipe_push(struct pipe_st *p, int n)
             pi->len = sz;
             break;
         case STATE_WRITE:
-            if (EPOLLERR & evs[i].events)
+            if (EPOLLERR & evs[i].events || evs[i].events & EPOLLHUP)
             {
                 printf("%d.dst %d %d in excepts\n", *j, pi->dst, evs[i].data.fd);
                 pi->state = STATE_ERR;
@@ -167,6 +183,11 @@ int pipe_push(struct pipe_st *p, int n)
             // write is available
             printf("%d.dst %d %d in writes\n", *j, pi->dst, evs[i].data.fd);
             sz = write(pi->dst, pi->buf, pi->len);
+            if(sz < 0)
+            {
+                perror("write()");
+                break;
+            }
             printf("write success i = %d, len = %ld\n", *j, sz);
             pi->off += sz;
             if (pi->off == pi->len)
@@ -213,7 +234,7 @@ int main(int argc, char **argv)
             perror("open()");
             exit(1);
         }
-        int dst = open(argv[i * 2 + 2], O_WRONLY | O_CREAT | O_NONBLOCK | O_TRUNC, 0600);
+        int dst = open(argv[i * 2 + 2], O_WRONLY | O_NONBLOCK , 0600);
         if (dst < 0)
         {
             perror("open()");

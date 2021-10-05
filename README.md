@@ -985,7 +985,7 @@ poll 比 select 使用方便些
 
 - epoll
 
-epoll 只有 linux 平台才可以使用
+epoll 只有 linux 平台才可以使用, epoll 不能用于常规文件
 
 ### select
 
