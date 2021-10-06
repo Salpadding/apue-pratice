@@ -979,18 +979,23 @@ int pthread_attr_destroy(pthread_attr_t* attr);
 
 select 最古老, 可移植性好, 缺点是使用比较麻烦
 
+使用见 ```adio/select.c```
+
 - poll
 
 poll 比 select 使用方便些
+
+使用见 ```adio/poll.c```
 
 - epoll
 
 epoll 只有 linux 平台才可以使用, epoll 不能用于常规文件
 
-### select
+使用见 ```adio/epoll.c```
 
+- 内存映射
 
-
+使用见 ```adio/mmap.c``` 和 ```adio/mmap_share.c```
 
 
 ## 进程间通信
