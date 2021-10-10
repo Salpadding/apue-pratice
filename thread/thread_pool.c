@@ -20,26 +20,34 @@ struct thread_pool_st
     pthread_mutex_t mtx;
     pthread_cond_t cond;
 
+    pthread_mutex_t task_mtx;
     pthread_mutex_t waits[MAX_TASKS];
 };
 
-int find_task(struct thread_pool_st *p)
+int find_task_lock(struct thread_pool_st *p)
 {
+    pthread_mutex_lock(&p->task_mtx);
     for (int i = 0; i < MAX_TASKS; i++)
     {
         if (p->tasks[i] != NULL)
+        {
+            pthread_mutex_unlock(&p->task_mtx);
             return i;
+        }
     }
+    pthread_mutex_unlock(&p->task_mtx);
     return -1;
 }
 
 void run_task_lock(struct thread_pool_st *p, int id)
 {
+    pthread_mutex_lock(&p->task_mtx);
     void (*task)(void *);
     task = p->tasks[id];
     void *args = p->args[id];
     p->args[id] = NULL;
     p->tasks[id] = NULL;
+    pthread_mutex_unlock(&p->task_mtx);
 
     if (task == NULL)
         return;
@@ -66,7 +74,7 @@ void *thread_pool_routine(void *arg)
         // printf("lock acq th routine\n");
         int tid;
 
-        while ((tid = find_task(p)) < 0)
+        while ((tid = find_task_lock(p)) < 0)
         {
             // waiting for new task coming, and reacquire the lock
             // printf("waiting for condition\n");
@@ -76,7 +84,7 @@ void *thread_pool_routine(void *arg)
                 exit(1);
             }
 
-            printf("pthread_cond_wait ret\n");
+            // printf("pthread_cond_wait ret\n");
         }
 
         // printf("tid >=0 found\n");
@@ -105,6 +113,12 @@ void tp_init(struct thread_pool_st *pool, int threads)
 
     // initialize mutex
     if (pthread_mutex_init(&pool->mtx, NULL) < 0)
+    {
+        perror("pthread_mutex_init()");
+        exit(1);
+    }
+
+    if (pthread_mutex_init(&pool->task_mtx, NULL) < 0)
     {
         perror("pthread_mutex_init()");
         exit(1);
@@ -141,6 +155,7 @@ int tp_add_task(struct thread_pool_st *pool, void (*task)(void *), void *arg)
         exit(1);
     }
 
+    pthread_mutex_lock(&pool->task_mtx);
     for (int i = 0; i < MAX_TASKS; i++)
     {
         if (pool->tasks[i] == NULL)
@@ -152,6 +167,8 @@ int tp_add_task(struct thread_pool_st *pool, void (*task)(void *), void *arg)
 
             pool->tasks[i] = task;
             pool->args[i] = arg;
+
+            pthread_mutex_unlock(&pool->task_mtx);
 
             if (pthread_cond_broadcast(&pool->cond) < 0)
             {
@@ -165,6 +182,7 @@ int tp_add_task(struct thread_pool_st *pool, void (*task)(void *), void *arg)
         }
     }
 
+    pthread_mutex_unlock(&pool->task_mtx);
     fprintf(stderr, "too much tasks\n");
     exit(1);
 }
@@ -203,7 +221,7 @@ void tp_close(struct thread_pool_st *pool)
 #define LEFT 30000
 #define RIGHT 30200
 #define TASKS (RIGHT - LEFT + 1)
-#define THREADS 2
+#define THREADS 8
 
 void routine(void *arg)
 {
