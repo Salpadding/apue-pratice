@@ -880,11 +880,29 @@ void pthread_cleanup_pop(void *arg);
 
 6. 线程的取消
 
+取消有两种状态, 一种是允许取消,一种是不允许取消
+允许取消又分为,异步cancel 和 推迟到cancel点(默认)
 这里要注意取消点的概念
+POSIX1 定义的 cancel 点都是可能引发阻塞的系统调用
+
+- 取消线程
 
 ```c
 #include <pthread.h>
 void pthread_cancel(pthread_t thread);
+```
+
+- 设置取消属性
+
+```c
+// 设置是否允许取消
+int pthread_setcancelstate(int state, int* oldstate);
+
+// 设置取消方式, 默认必须到取消点才能取消, 可以修改为任意处取消
+int pthread_setcanceltype(int type, int* oldtype);
+
+// 什么都不做, 设置取消点
+void pthread_testcancel(void);
 ```
 
 7. 互斥量
